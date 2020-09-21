@@ -1,0 +1,85 @@
+CREATE DATABASE AULA_2020_09_14
+GO
+USE AULA_2020_09_14
+
+CREATE TABLE produto(
+idProduto INT NOT NULL,
+nome VARCHAR(100),
+valor DECIMAL(7,2),
+tipo CHAR(1) DEFAULT('e')
+PRIMARY KEY (idProduto))
+ 
+CREATE TABLE compra(
+codigo INT NOT NULL,
+produto INT NOT NULL,
+qtd INT NOT NULL,
+vl_total DECIMAL(7,2)
+ 
+PRIMARY KEY (codigo, produto)
+FOREIGN KEY (produto) REFERENCES produto (idProduto))
+ 
+CREATE TABLE venda(
+codigo INT NOT NULL,
+produto INT NOT NULL,
+qtd INT NOT NULL,
+vl_total DECIMAL(7,2)
+ 
+PRIMARY KEY (codigo, produto)
+FOREIGN KEY (produto) REFERENCES produto (idProduto))
+
+CREATE PROCEDURE sp_registra_produto (@idProduto INT, @nome VARCHAR(100), 
+		@valor DECIMAL(7,2), @tipo CHAR(1))
+AS
+	DECLARE @cont INT,
+			@query VARCHAR(MAX)
+
+	IF NOT(LOWER(@tipo) = 'e' OR LOWER(@tipo) = 's')
+	BEGIN
+		RAISERROR('Tipo inválido', 16, 1)
+	END
+
+	SET @cont = (SELECT COUNT(*) FROM produto WHERE idProduto = @idProduto)
+	IF @cont=0
+	BEGIN
+		SET @query = 'INSERT INTO produto (idProduto, nome, valor, tipo) VALUES '
+			+ '(' + CAST(@idProduto AS varchar(MAX)) + ', ''' + UPPER(@nome) + ''', '
+			+ CAST(@valor AS varchar(MAX)) + ', ''' + LOWER(@tipo) + ''')'
+	END
+	ELSE
+	BEGIN
+		SET @query = 'UPDATE produto SET nome = ''' + UPPER(@nome) + ''', valor = '
+				+ CAST(@valor AS varchar(MAX)) + ', tipo = ''' + LOWER(@tipo)
+				+ ''' WHERE idProduto = ' + CAST(@idProduto AS varchar(MAX))
+	END
+	EXEC(@query)
+
+CREATE ALTER PROCEDURE sp_registra_operacao (@idProduto INT, @quant INT, @tipo VARCHAR(1))
+AS
+	DECLARE @valor		DECIMAL(7,2),
+			@total		DECIMAL(7,2),
+			@cont		INT,
+			@tabela		VARCHAR(MAX),
+			@query		VARCHAR(MAX)
+
+	SET @cont = (SELECT COUNT(*) FROM produto WHERE idProduto = @idProduto)
+	IF @cont = 0
+	BEGIN
+		RAISERROR('Produto não registrado', 16, 1)
+	END
+
+	SET @tabela = 'compra'
+	IF LOWER(@tipo)='s'
+	BEGIN
+		SET @tabela = 'venda'
+	END
+
+	SET @valor = (SELECT valor FROM produto WHERE idProduto = @idProduto)
+	SET @total = @valor * @quant
+	SET @query = 'INSERT INTO ' + @tabela + '(codigo, produto, qtd, vl_total) VALUES (' 
+				+ '(SELECT COUNT(*)+1 FROM ' + @tabela + ' WHERE produto = '
+				+ CAST(@idProduto AS varchar(MAX)) + ')' + ','
+				+ CAST(@idProduto AS varchar(MAX)) + ','
+				+ CAST(@quant AS varchar(MAX)) + ','
+				+ CAST(@total AS varchar(MAX)) + ')'
+	PRINT @query
+	EXEC(@query)
