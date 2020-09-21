@@ -53,7 +53,7 @@ AS
 	END
 	EXEC(@query)
 
-CREATE ALTER PROCEDURE sp_registra_operacao (@idProduto INT, @quant INT, @tipo VARCHAR(1))
+CREATE PROCEDURE sp_registra_operacao (@idProduto INT, @quant INT, @tipo VARCHAR(1))
 AS
 	DECLARE @valor		DECIMAL(7,2),
 			@total		DECIMAL(7,2),
@@ -73,6 +73,7 @@ AS
 		SET @tabela = 'venda'
 	END
 
+	UPDATE produto SET tipo = @tipo WHERE idProduto = @idProduto
 	SET @valor = (SELECT valor FROM produto WHERE idProduto = @idProduto)
 	SET @total = @valor * @quant
 	SET @query = 'INSERT INTO ' + @tabela + '(codigo, produto, qtd, vl_total) VALUES (' 
@@ -81,5 +82,4 @@ AS
 				+ CAST(@idProduto AS varchar(MAX)) + ','
 				+ CAST(@quant AS varchar(MAX)) + ','
 				+ CAST(@total AS varchar(MAX)) + ')'
-	PRINT @query
 	EXEC(@query)
